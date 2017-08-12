@@ -40,6 +40,47 @@ def get(name):
 		return "404: Snippet Not Found"
 	return row
 	
+	
+def catalog():
+	""" Retrieve all the the keywords in snippets """
+	logging.info("Retrieving keywords in snippets")
+	# cursor as a context manager
+	with connection, connection.cursor() as cursor:
+		cursor.execute("select keyword from snippets order by keyword")
+		rows = cursor.fetchall()
+		for row in rows:
+			print (row)
+			
+	logging.debug("keywords retrieved successfully...")
+	return row
+	
+	
+def search(name):
+	""" Search for the name of the keyword in the snippets database """
+	logging.info("Searching the keyword {!r} in the snippets database".format(name))
+	
+	with connection, connection.cursor() as cursor:
+		cursor.execute("select keyword from snippets where keyword LIKE '%" + name + "%'")
+		rows = cursor.fetchall()
+			
+	logging.debug("The searched keyword retrieved successfully...")
+	if not rows:
+		return "No Keyword matched your search"
+	return rows
+	
+	
+def delete(name):
+	""" Delete the whole record based on the keyword """
+	logging.info("Deleting the keyword {!r} with its description".format(name))
+	
+	with connection, connection.cursor() as cursor:
+		cursor.execute("delete from snippets where keyword=%s", (name,))
+	
+	if cursor.rowcount < 1:
+		return "No Keyword with {} found".format(name)
+	return "Total number of rows deleted :", cursor.rowcount
+	
+	
 def main():
 	"""The Main Function"""
 	logging.info("Constructing Parser")
@@ -47,6 +88,16 @@ def main():
 	
 	# Add subparsers
 	subparsers = parser.add_subparsers(dest="commands", help="Available commands")
+	
+	
+	# Subparser for listing all the keywords in snippets database
+	logging.debug("Listing all keywords")
+	subparsers.add_parser(None, help="List all keywords in snippets")
+	
+	# Subparser for the Search command
+	logging.debug("Constructing search subparser")
+	search_parser = subparsers.add_parser("search", help="Search a keyword")
+	search_parser.add_argument("name", help="Name of the Keyword being searhed for")
 	
 	# Subparser for the Put command
 	logging.debug("Constructing put subparser")
@@ -58,6 +109,11 @@ def main():
 	logging.debug("Constructing get subparser")
 	get_parser = subparsers.add_parser("get", help="Retrieve a snippet")
 	get_parser.add_argument("name", help="Name of the snippet")
+	
+	# Subparser for the Delete command
+	logging.debug("Constructing delete subparser")
+	delete_parser = subparsers.add_parser("delete", help="Delete a snippet")
+	delete_parser.add_argument("name", help="Name of the snippet")
 	
 	arguments = parser.parse_args()
 	
@@ -72,6 +128,15 @@ def main():
 	elif command == "get":
 		snippet = get(**arguments)
 		print("Retrieved snippet: {!r}".format(snippet))
+	elif command == "search":
+		name = search(**arguments)
+		print("Retrieved the searched keyword:\n {!r}".format(name))
+	elif command == "delete":
+		name = delete(**arguments)
+		print("{!r}".format(name))
+	elif command == None:
+		print("The list of the keywords available in Snippets Database\n")
+		snippet = catalog()
 	
 	
 if __name__ == "__main__":
